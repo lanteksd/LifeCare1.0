@@ -582,7 +582,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     });
 
     // --- CHECKLIST 3: DEMANDAS ---
-    const pendingDemands = data.demands.filter(d => d.status === 'PENDENTE');
+    // Safe access here (Fix for TS18048)
+    const pendingDemands = (data.demands || []).filter(d => d.status === 'PENDENTE');
 
     // --- CHECKLIST 4: ESCALA DE EQUIPE OBRIGATÓRIA ---
     const staffPresentIds = (data.timeSheets || [])
