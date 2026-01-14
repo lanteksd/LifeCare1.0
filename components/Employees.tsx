@@ -354,7 +354,7 @@ export const Employees: React.FC<EmployeesProps> = ({
           </div>
 
           <form onSubmit={handleSaveForm} className="space-y-6">
-            <div className="flex items-center gap-4 mb-4 justify-center">
+            <div className="flex flex-col items-center gap-2 mb-4 justify-center">
               <div className="w-28 h-36 rounded-xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden relative group">
                 {currentEmployee.photo ? (
                   <img src={currentEmployee.photo} className="w-full h-full object-cover" />
@@ -366,6 +366,15 @@ export const Employees: React.FC<EmployeesProps> = ({
                   <input type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
                 </label>
               </div>
+              {currentEmployee.photo && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentEmployee(prev => ({ ...prev, photo: '' }))}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
+                >
+                  Remover foto
+                </button>
+              )}
             </div>
 
             <div>

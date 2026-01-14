@@ -707,29 +707,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
         const record = getFinancialRecord(resident, financialMonth);
         const value = record ? record.value : (resident.defaultMonthlyFee || 0);
         const dueDate = record ? record.dueDate : `${financialMonth}-${String(resident.defaultDueDay || 10).padStart(2, '0')}`;
+        const status = record ? record.status : 'PENDENTE';
         
-        // Logica Atualizada: Se for MP, consideramos PAGO visualmente
-        let status = record ? record.status : 'PENDENTE';
-        
-        // Sums Logic
+        // Sums
         totalExpected += value;
-        
-        // Se for MP, conta como Recebido automaticamente (independente se o registro diz 'PENDENTE')
-        if (resident.isMP) {
-            totalReceived += value;
-        } else {
-            if (status === 'PAGO') totalReceived += value;
-            if (status === 'ATRASADO' || (status === 'PENDENTE' && new Date(dueDate) < new Date())) totalOverdue += value;
-        }
+        if (status === 'PAGO') totalReceived += value;
+        if (status === 'ATRASADO' || (status === 'PENDENTE' && new Date(dueDate) < new Date())) totalOverdue += value;
 
-        // Display Logic
-        // Fix: Explicitly type as string to allow 'PAGO (MP)' which is not in FinancialRecord['status']
-        let displayStatus: string = status;
-        if (resident.isMP) {
-            displayStatus = 'PAGO (MP)';
-        } else if (status === 'PENDENTE' && new Date(dueDate) < new Date()) {
-            displayStatus = 'ATRASADO';
-        }
+        // Auto-fix overdue status visualization locally
+        const displayStatus = (status === 'PENDENTE' && new Date(dueDate) < new Date()) ? 'ATRASADO' : status;
 
         return {
             resident,
@@ -803,7 +789,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                     
                                     <td className="p-4 text-center">
                                         <span className={`px-2 py-1 rounded text-xs font-bold uppercase inline-block w-24 text-center ${
-                                            displayStatus === 'PAGO' || displayStatus === 'PAGO (MP)' ? 'bg-emerald-100 text-emerald-700' :
+                                            displayStatus === 'PAGO' ? 'bg-emerald-100 text-emerald-700' :
                                             displayStatus === 'ATRASADO' ? 'bg-red-100 text-red-700' :
                                             'bg-amber-100 text-amber-700'
                                         }`}>
@@ -815,20 +801,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                         <div className="flex justify-end gap-2">
                                             {/* Toggle Payment */}
                                             <button 
-                                                onClick={() => !resident.isMP && handleUpdateFinancial(resident, { status: displayStatus === 'PAGO' ? 'PENDENTE' : 'PAGO', paymentDate: displayStatus === 'PAGO' ? '' : new Date().toISOString().split('T')[0] })}
-                                                disabled={resident.isMP || false}
-                                                className={`p-2 rounded-lg transition-colors ${
-                                                    resident.isMP ? 'bg-slate-100 text-slate-300 cursor-not-allowed' :
-                                                    displayStatus === 'PAGO' ? 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500' : 
-                                                    'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                                }`}
-                                                title={resident.isMP ? "Gerenciado via MP" : (displayStatus === 'PAGO' ? "Marcar como Pendente" : "Confirmar Pagamento")}
+                                                onClick={() => handleUpdateFinancial(resident, { status: displayStatus === 'PAGO' ? 'PENDENTE' : 'PAGO', paymentDate: displayStatus === 'PAGO' ? '' : new Date().toISOString().split('T')[0] })}
+                                                className={`p-2 rounded-lg transition-colors ${displayStatus === 'PAGO' ? 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                                                title={displayStatus === 'PAGO' ? "Marcar como Pendente" : "Confirmar Pagamento"}
                                             >
-                                                {displayStatus === 'PAGO' || displayStatus === 'PAGO (MP)' ? <X size={18} /> : <Check size={18} />}
+                                                {displayStatus === 'PAGO' ? <X size={18} /> : <Check size={18} />}
                                             </button>
 
                                             {/* WhatsApp */}
-                                            {!resident.isMP && getWhatsAppPaymentLink(resident, { ...record, value, dueDate }) ? (
+                                            {getWhatsAppPaymentLink(resident, { ...record, value, dueDate }) ? (
                                                 <a 
                                                     href={getWhatsAppPaymentLink(resident, { ...record, value, dueDate }) || '#'}
                                                     target="_blank"

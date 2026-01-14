@@ -94,8 +94,7 @@ const migrateResident = (r: any): Resident => ({
   // Novos campos financeiros
   defaultMonthlyFee: typeof r.defaultMonthlyFee === 'number' ? r.defaultMonthlyFee : 0,
   defaultDueDay: typeof r.defaultDueDay === 'number' ? r.defaultDueDay : 10,
-  financialRecords: Array.isArray(r.financialRecords) ? r.financialRecords.map(migrateFinancialRecord) : [],
-  isMP: r.isMP || false // Novo campo MP
+  financialRecords: Array.isArray(r.financialRecords) ? r.financialRecords.map(migrateFinancialRecord) : []
 });
 
 const migrateProduct = (p: any): Product => ({

@@ -75,8 +75,6 @@ export interface Resident {
   defaultDueDay?: number; // Dia padrão de vencimento (ex: dia 10)
   financialRecords?: FinancialRecord[]; // Histórico de pagamentos
   
-  isMP?: boolean; // Novo: Se é Ministério Público (Pagamento Automático)
-  
   active: boolean;
 }
 

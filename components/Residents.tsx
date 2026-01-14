@@ -29,8 +29,7 @@ const EmptyResident: Resident = {
   pharmacyPhone: '',
   pharmacies: [],
   active: true,
-  documents: [],
-  isMP: false
+  documents: []
 };
 
 export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, onDeleteTransaction, onUpdateTransaction, onSaveDemand }) => {
@@ -762,33 +761,18 @@ export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, on
             {/* TAB: CONTACT */}
             {activeFormTab === 'CONTACT' && (
               <div className="space-y-6 animate-in fade-in">
-                {/* Modificado para incluir checkbox MP */}
-                <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
-                  <div className="flex-1 w-full">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nome Responsável</label>
-                    <input 
-                      type="text" 
-                      className="w-full p-2 border border-slate-300 rounded-md"
-                      value={currentResident.responsible.name}
-                      onChange={e => setCurrentResident({
-                        ...currentResident, 
-                        responsible: {...currentResident.responsible, name: e.target.value}
-                      })}
-                    />
-                  </div>
-                  <div className="p-2 border border-red-200 bg-red-50 rounded-lg flex items-center gap-2 mb-0.5 shrink-0">
-                      <label htmlFor="chk-mp" className="text-xs font-bold text-red-700 cursor-pointer select-none">MP</label>
-                      <input
-                          id="chk-mp"
-                          type="checkbox"
-                          checked={currentResident.isMP || false}
-                          onChange={e => setCurrentResident({...currentResident, isMP: e.target.checked})}
-                          className="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-red-300"
-                          title="Ministério Público (Pagamento Automático)"
-                      />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Nome Responsável</label>
+                  <input 
+                    type="text" 
+                    className="w-full p-2 border border-slate-300 rounded-md"
+                    value={currentResident.responsible.name}
+                    onChange={e => setCurrentResident({
+                      ...currentResident, 
+                      responsible: {...currentResident.responsible, name: e.target.value}
+                    })}
+                  />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Parentesco</label>
                   <input 
