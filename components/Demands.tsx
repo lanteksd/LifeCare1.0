@@ -500,7 +500,7 @@ export const Demands: React.FC<DemandsProps> = ({ data, onSave, onDelete, onSave
             </div>
             
             {/* Foto Upload */}
-            <div className="flex items-center justify-center mb-6">
+            <div className="flex flex-col items-center justify-center mb-6 gap-2">
               <div className="relative group">
                 <div className="w-24 h-32 rounded-xl bg-slate-100 border-2 border-slate-200 flex items-center justify-center overflow-hidden">
                   {editingProfessional.photo ? (
@@ -514,6 +514,15 @@ export const Demands: React.FC<DemandsProps> = ({ data, onSave, onDelete, onSave
                   <input type="file" accept="image/*" className="hidden" onChange={handleProfessionalPhotoUpload} />
                 </label>
               </div>
+              {editingProfessional.photo && (
+                <button
+                  type="button"
+                  onClick={() => setEditingProfessional(prev => prev ? ({ ...prev, photo: '' }) : null)}
+                  className="text-xs text-red-500 hover:text-red-700 font-medium hover:underline"
+                >
+                  Remover foto
+                </button>
+              )}
             </div>
 
             <div>
