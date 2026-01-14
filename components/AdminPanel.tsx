@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea } from '../types';
 import { PROFESSIONAL_AREAS } from '../constants';
-import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning } from 'lucide-react';
+import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning, Banknote, FileBadge } from 'lucide-react';
 
 interface AdminPanelProps {
   data: AppData;
@@ -286,13 +286,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                 date: null
             });
         } else {
-            // Usa issueDate se disponível, senão usa date (data de upload) como fallback
             const baseDateStr = laudo.issueDate || laudo.date;
             const issueDate = new Date(baseDateStr);
             const expirationDate = new Date(issueDate);
-            expirationDate.setDate(expirationDate.getDate() + 180); // 180 dias de validade
+            expirationDate.setDate(expirationDate.getDate() + 180); 
 
-            // Zerar horas para cálculo correto de dias
             const todayZero = new Date(today);
             todayZero.setHours(0,0,0,0);
             const expZero = new Date(expirationDate);
@@ -322,11 +320,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
         }
     });
 
-    // Ordenação
-    // Críticos: Sem Laudo primeiro, depois Vencidos por mais tempo
     criticalList.sort((a, b) => a.daysLeft - b.daysLeft); 
-    
-    // Válidos: Os que vencem antes aparecem primeiro
     validList.sort((a, b) => a.daysLeft - b.daysLeft);
 
     const html = `
@@ -347,7 +341,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
             .status-warning { color: orange; font-weight: bold; }
             .status-ok { color: green; font-weight: bold; }
             .center { text-align: center; }
-            .right { text-align: right; }
         </style>
       </head>
       <body>
@@ -419,6 +412,166 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
       </html>
     `;
 
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const handlePrintFinancialReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return alert("Permita pop-ups para imprimir.");
+
+    // Define o período (Últimos 30 dias por padrão para fechamento)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - 30);
+
+    const activeResidents = data.residents.filter(r => r.active).sort((a,b) => a.name.localeCompare(b.name));
+    
+    // Agrupa transações de SAÍDA por residente
+    const reportData = activeResidents.map(resident => {
+        const usage = data.transactions.filter(t => 
+            t.residentId === resident.id && 
+            t.type === 'OUT' &&
+            new Date(t.date) >= startDate
+        );
+
+        // Agrupa por produto
+        const productUsage: Record<string, { name: string, qty: number }> = {};
+        usage.forEach(t => {
+            if (!productUsage[t.productId]) {
+                productUsage[t.productId] = { name: t.productName, qty: 0 };
+            }
+            productUsage[t.productId].qty += t.quantity;
+        });
+
+        return {
+            resident,
+            items: Object.values(productUsage).sort((a,b) => a.name.localeCompare(b.name))
+        };
+    }).filter(r => r.items.length > 0);
+
+    const html = `
+      <html>
+      <head>
+        <title>Relatório Financeiro de Consumo</title>
+        <style>
+            @page { size: A4; margin: 10mm; }
+            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10px; color: #000; padding: 0; margin: 0; }
+            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+            h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
+            .resident-block { margin-bottom: 15px; page-break-inside: avoid; border: 1px solid #ccc; padding: 10px; border-radius: 4px; }
+            .resident-name { font-weight: bold; font-size: 12px; background-color: #f3f4f6; padding: 5px; margin: -10px -10px 10px -10px; border-bottom: 1px solid #ccc; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border-bottom: 1px solid #eee; padding: 4px; text-align: left; }
+            th { font-weight: bold; color: #555; }
+            .qty { text-align: right; font-weight: bold; width: 60px; }
+            .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+            <h1>Relatório de Consumo (Fechamento Mensal)</h1>
+            <p>Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}</p>
+        </div>
+
+        ${reportData.map(entry => `
+            <div class="resident-block">
+                <div class="resident-name">${entry.resident.name} (Quarto ${entry.resident.room})</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Consumido</th>
+                            <th class="qty">Qtd. Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${entry.items.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td class="qty">${item.qty}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `).join('')}
+
+        <div class="footer">
+            Relatório gerado para fins de conferência e cobrança de reposição. <br/>
+            LifeCare - Sistema de Gestão
+        </div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  const handlePrintEmployeeList = () => {
+    const activeEmployees = (data.employees || []).filter(e => e.active).sort((a,b) => a.name.localeCompare(b.name));
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return alert("Permita pop-ups para imprimir.");
+
+    const html = `
+      <html>
+      <head>
+        <title>Relação Nominal de Colaboradores</title>
+        <style>
+            @page { size: A4; margin: 10mm; }
+            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10px; color: #000; padding: 0; margin: 0; }
+            .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+            h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
+            p { margin: 2px 0; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: middle; }
+            th { background-color: #e5e7eb; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .center { text-align: center; }
+            .signature-col { width: 150px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+            <h1>Relação Nominal de Colaboradores</h1>
+            <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
+            <p>Status: ATIVOS</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="30">Nº</th>
+                    <th>Nome Completo</th>
+                    <th width="100">Cargo / Função</th>
+                    <th width="90">CPF</th>
+                    <th width="80">Admissão</th>
+                    <th width="90">Telefone</th>
+                    <th class="signature-col">Assinatura</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${activeEmployees.map((emp, index) => `
+                    <tr>
+                        <td class="center">${index + 1}</td>
+                        <td>${emp.name}</td>
+                        <td class="center">${emp.role}</td>
+                        <td class="center">${emp.cpf || '-'}</td>
+                        <td class="center">${emp.admissionDate ? emp.admissionDate.split('-').reverse().join('/') : '-'}</td>
+                        <td class="center">${emp.phone || '-'}</td>
+                        <td></td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+
+        <div style="margin-top: 30px; font-size: 9px; text-align: center; color: #666;">
+            Documento para fins administrativos e fiscais.
+        </div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `;
     printWindow.document.write(html);
     printWindow.document.close();
   };
@@ -741,7 +894,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
             </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col justify-between">
                 <div>
                     <div className="w-12 h-12 bg-rose-100 rounded-lg flex items-center justify-center mb-4 text-rose-600"><Activity size={24} /></div>
@@ -761,10 +914,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                 <button onClick={handlePrintLaudoReport} className="mt-6 w-full bg-blue-700 text-white py-2 rounded-lg font-bold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"><Printer size={18} /> Imprimir Relatório</button>
             </div>
 
-            <div className="bg-slate-50 p-6 rounded-xl border border-dashed border-slate-300 flex flex-col items-center justify-center text-center opacity-70">
-                <Settings size={32} className="text-slate-300 mb-3" />
-                <h3 className="font-bold text-slate-500">Em Breve</h3>
-                <p className="text-xs text-slate-400 mt-1">Controle Financeiro e Contratos</p>
+            {/* NOVO CARD: CONTROLE FINANCEIRO (SUBSTITUI O "EM BREVE") */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col justify-between">
+                <div>
+                    <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4 text-emerald-600"><Banknote size={24} /></div>
+                    <h3 className="font-bold text-lg text-slate-800">Relatório Financeiro</h3>
+                    <p className="text-sm text-slate-500 mt-2">Extrato de consumo mensal por residente (Fraldas, Medicamentos e Itens de Higiene) para cobrança.</p>
+                </div>
+                <button onClick={handlePrintFinancialReport} className="mt-6 w-full bg-emerald-700 text-white py-2 rounded-lg font-bold hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"><Printer size={18} /> Fechamento Mensal</button>
+            </div>
+
+            {/* NOVO CARD: RELAÇÃO DE COLABORADORES */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col justify-between">
+                <div>
+                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4 text-indigo-600"><FileBadge size={24} /></div>
+                    <h3 className="font-bold text-lg text-slate-800">Relação de Equipe</h3>
+                    <p className="text-sm text-slate-500 mt-2">Lista nominal completa dos colaboradores ativos para fins administrativos e fiscais.</p>
+                </div>
+                <button onClick={handlePrintEmployeeList} className="mt-6 w-full bg-indigo-700 text-white py-2 rounded-lg font-bold hover:bg-indigo-800 transition-colors flex items-center justify-center gap-2"><Printer size={18} /> Imprimir Lista</button>
             </div>
         </div>
     </div>
