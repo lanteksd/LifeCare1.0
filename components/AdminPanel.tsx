@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea } from '../types';
+import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea, Resident, FinancialRecord } from '../types';
 import { PROFESSIONAL_AREAS } from '../constants';
-import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning, Banknote, FileBadge } from 'lucide-react';
+import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning, Banknote, FileBadge, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle2, MessageCircle, Save } from 'lucide-react';
 
 interface AdminPanelProps {
   data: AppData;
@@ -10,7 +10,8 @@ interface AdminPanelProps {
   onUpdateProfessional: (professional: Professional) => void;
   onSaveHouseDocument: (doc: HouseDocument) => void;
   onDeleteHouseDocument: (id: string) => void;
-  onSaveDemand: (demand: Demand) => void; // New prop for updating demand status
+  onSaveDemand: (demand: Demand) => void; 
+  onUpdateResident?: (resident: Resident) => void; // New prop for saving financial data
 }
 
 // Unified interface for display
@@ -93,7 +94,12 @@ const getAreaHeaderStyle = (area: ProfessionalArea) => {
     return styles[area] || 'bg-slate-50 text-slate-700 border-slate-200';
 };
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, onUpdateProfessional, onSaveHouseDocument, onDeleteHouseDocument, onSaveDemand }) => {
+// Helper for formatting currency
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+};
+
+export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, onUpdateProfessional, onSaveHouseDocument, onDeleteHouseDocument, onSaveDemand, onUpdateResident }) => {
   const [activeTab, setActiveTab] = useState<'TEAM' | 'HOUSE' | 'ADMIN' | 'FINANCIAL'>('TEAM');
   
   // Team Logic State
@@ -103,6 +109,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
   
   // House Logic State
   const [houseDocSearch, setHouseDocSearch] = useState('');
+
+  // Financial Logic State
+  const [financialMonth, setFinancialMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+  const [financialSearch, setFinancialSearch] = useState('');
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -416,98 +426,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     printWindow.document.close();
   };
 
-  const handlePrintFinancialReport = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return alert("Permita pop-ups para imprimir.");
-
-    // Define o período (Últimos 30 dias por padrão para fechamento)
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(endDate.getDate() - 30);
-
-    const activeResidents = data.residents.filter(r => r.active).sort((a,b) => a.name.localeCompare(b.name));
-    
-    // Agrupa transações de SAÍDA por residente
-    const reportData = activeResidents.map(resident => {
-        const usage = data.transactions.filter(t => 
-            t.residentId === resident.id && 
-            t.type === 'OUT' &&
-            new Date(t.date) >= startDate
-        );
-
-        // Agrupa por produto
-        const productUsage: Record<string, { name: string, qty: number }> = {};
-        usage.forEach(t => {
-            if (!productUsage[t.productId]) {
-                productUsage[t.productId] = { name: t.productName, qty: 0 };
-            }
-            productUsage[t.productId].qty += t.quantity;
-        });
-
-        return {
-            resident,
-            items: Object.values(productUsage).sort((a,b) => a.name.localeCompare(b.name))
-        };
-    }).filter(r => r.items.length > 0);
-
-    const html = `
-      <html>
-      <head>
-        <title>Relatório Financeiro de Consumo</title>
-        <style>
-            @page { size: A4; margin: 10mm; }
-            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10px; color: #000; padding: 0; margin: 0; }
-            .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
-            .resident-block { margin-bottom: 15px; page-break-inside: avoid; border: 1px solid #ccc; padding: 10px; border-radius: 4px; }
-            .resident-name { font-weight: bold; font-size: 12px; background-color: #f3f4f6; padding: 5px; margin: -10px -10px 10px -10px; border-bottom: 1px solid #ccc; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border-bottom: 1px solid #eee; padding: 4px; text-align: left; }
-            th { font-weight: bold; color: #555; }
-            .qty { text-align: right; font-weight: bold; width: 60px; }
-            .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #666; border-top: 1px solid #ccc; padding-top: 10px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-            <h1>Relatório de Consumo (Fechamento Mensal)</h1>
-            <p>Período: ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}</p>
-        </div>
-
-        ${reportData.map(entry => `
-            <div class="resident-block">
-                <div class="resident-name">${entry.resident.name} (Quarto ${entry.resident.room})</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Item Consumido</th>
-                            <th class="qty">Qtd. Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${entry.items.map(item => `
-                            <tr>
-                                <td>${item.name}</td>
-                                <td class="qty">${item.qty}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `).join('')}
-
-        <div class="footer">
-            Relatório gerado para fins de conferência e cobrança de reposição. <br/>
-            LifeCare - Sistema de Gestão
-        </div>
-        <script>window.print();</script>
-      </body>
-      </html>
-    `;
-    printWindow.document.write(html);
-    printWindow.document.close();
-  };
-
   const handlePrintEmployeeList = () => {
     // 1. Internal Employees
     const activeEmployees = (data.employees || []).filter(e => e.active).map(e => ({
@@ -624,6 +542,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     onSaveDemand({ ...demand, status: 'EM_ANDAMENTO' });
   };
 
+  // --- FINANCIAL HANDLERS ---
+
+  const getFinancialRecord = (resident: Resident, monthKey: string) => {
+    return (resident.financialRecords || []).find(r => r.monthKey === monthKey);
+  };
+
+  const handleUpdateFinancial = (resident: Resident, updates: Partial<FinancialRecord>) => {
+    if (!onUpdateResident) {
+        console.error("onUpdateResident is not defined");
+        return;
+    }
+
+    const currentRecords = resident.financialRecords || [];
+    const recordIndex = currentRecords.findIndex(r => r.monthKey === financialMonth);
+    let newRecords = [...currentRecords];
+
+    if (recordIndex >= 0) {
+        // Update existing
+        newRecords[recordIndex] = { ...newRecords[recordIndex], ...updates };
+    } else {
+        // Create new
+        const newRecord: FinancialRecord = {
+            id: crypto.randomUUID(),
+            monthKey: financialMonth,
+            value: resident.defaultMonthlyFee || 0,
+            dueDate: `${financialMonth}-${String(resident.defaultDueDay || 10).padStart(2, '0')}`,
+            status: 'PENDENTE',
+            ...updates
+        };
+        newRecords.push(newRecord);
+    }
+
+    onUpdateResident({ ...resident, financialRecords: newRecords });
+  };
+
+  const getWhatsAppPaymentLink = (resident: Resident, record: FinancialRecord) => {
+    const phone = resident.responsible.phone1.replace(/\D/g, '');
+    if (!phone) return null;
+    const fullPhone = phone.length <= 11 ? `55${phone}` : phone;
+
+    const [year, month] = record.monthKey.split('-');
+    const dateObj = new Date(parseInt(year), parseInt(month)-1, 1);
+    const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
+    const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+    
+    const dueDateFormatted = record.dueDate ? new Date(record.dueDate).toLocaleDateString('pt-BR') : 'A definir';
+    const valueFormatted = formatCurrency(record.value);
+
+    let message = `Olá ${resident.responsible.name},\n\n`;
+    message += `Lembrete da mensalidade de *${capitalizedMonth}* referente ao residente *${resident.name}*.\n\n`;
+    message += `📅 Vencimento: *${dueDateFormatted}*\n`;
+    message += `💲 Valor: *${valueFormatted}*\n\n`;
+    message += `Caso já tenha efetuado o pagamento, por favor, desconsidere esta mensagem.\n\nAtenciosamente,\nEquipe LifeCare.`;
+
+    return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+  };
+
   // --- RENDERERS ---
 
   const renderTeamManagement = () => (
@@ -719,36 +694,150 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
       </div>
   );
 
-  // NOVO: Aba Financeiro Exclusiva
-  const renderFinancial = () => (
-    <div className="space-y-6 animate-in fade-in">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-                <h3 className="text-xl font-bold text-emerald-800 flex items-center gap-2">
-                    <Banknote size={24} /> Relatórios Financeiros
-                </h3>
-                <p className="text-emerald-700 mt-1">Gerenciamento de custos e fechamento mensal de consumo para cobrança.</p>
-            </div>
-            <div className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm w-full md:w-auto">
-                <button 
-                    onClick={handlePrintFinancialReport} 
-                    className="w-full md:w-auto bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-md"
-                >
-                    <Printer size={20} /> Imprimir Fechamento Mensal
-                </button>
-                <p className="text-xs text-slate-500 mt-2 text-center">Gera extrato de consumo dos últimos 30 dias por residente.</p>
-            </div>
-        </div>
+  const renderFinancial = () => {
+    // 1. Prepare Data for Selected Month
+    const activeResidents = data.residents.filter(r => r.active && r.name.toLowerCase().includes(financialSearch.toLowerCase())).sort((a,b) => a.name.localeCompare(b.name));
+    
+    // Aggregates
+    let totalExpected = 0;
+    let totalReceived = 0;
+    let totalOverdue = 0;
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Future Financial Cards can go here */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 opacity-60">
-                <h4 className="font-bold text-slate-700 mb-2">Histórico de Custos</h4>
-                <p className="text-sm text-slate-500">Em breve: Acompanhamento da evolução de gastos.</p>
+    const listData = activeResidents.map(resident => {
+        const record = getFinancialRecord(resident, financialMonth);
+        const value = record ? record.value : (resident.defaultMonthlyFee || 0);
+        const dueDate = record ? record.dueDate : `${financialMonth}-${String(resident.defaultDueDay || 10).padStart(2, '0')}`;
+        const status = record ? record.status : 'PENDENTE';
+        
+        // Sums
+        totalExpected += value;
+        if (status === 'PAGO') totalReceived += value;
+        if (status === 'ATRASADO' || (status === 'PENDENTE' && new Date(dueDate) < new Date())) totalOverdue += value;
+
+        // Auto-fix overdue status visualization locally
+        const displayStatus = (status === 'PENDENTE' && new Date(dueDate) < new Date()) ? 'ATRASADO' : status;
+
+        return {
+            resident,
+            record: record || { id: 'temp', monthKey: financialMonth, value, dueDate, status: 'PENDENTE' } as FinancialRecord,
+            displayStatus,
+            value,
+            dueDate
+        };
+    });
+
+    return (
+        <div className="space-y-6 animate-in fade-in">
+            {/* Header & Controls */}
+            <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
+                <div className="flex items-center gap-3">
+                    <Calendar className="text-emerald-600" />
+                    <input 
+                        type="month" 
+                        value={financialMonth}
+                        onChange={e => setFinancialMonth(e.target.value)}
+                        className="font-bold text-slate-700 bg-transparent outline-none border-b border-slate-300 focus:border-emerald-500 text-lg"
+                    />
+                </div>
+                <div className="relative w-full md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <input 
+                        type="text" 
+                        placeholder="Buscar residente..." 
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                        value={financialSearch}
+                        onChange={e => setFinancialSearch(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            {/* Main Table */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-slate-50 text-slate-700 font-bold uppercase text-xs">
+                            <tr>
+                                <th className="p-4 border-b">Residente</th>
+                                <th className="p-4 border-b text-center">Vencimento</th>
+                                <th className="p-4 border-b text-right">Valor (R$)</th>
+                                <th className="p-4 border-b text-center">Status</th>
+                                <th className="p-4 border-b text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {listData.map(({ resident, record, displayStatus, value, dueDate }) => (
+                                <tr key={resident.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="p-4 font-medium text-slate-700">{resident.name}</td>
+                                    
+                                    <td className="p-4 text-center">
+                                        <input 
+                                            type="date"
+                                            className="bg-transparent border border-transparent hover:border-slate-300 rounded px-2 py-1 text-center w-36 cursor-pointer focus:border-emerald-500 outline-none transition-all"
+                                            value={dueDate}
+                                            onChange={(e) => handleUpdateFinancial(resident, { dueDate: e.target.value })}
+                                        />
+                                    </td>
+                                    
+                                    <td className="p-4 text-right">
+                                        <input 
+                                            type="number"
+                                            className="bg-transparent border border-transparent hover:border-slate-300 rounded px-2 py-1 text-right w-28 cursor-pointer focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
+                                            value={value}
+                                            onChange={(e) => handleUpdateFinancial(resident, { value: parseFloat(e.target.value) || 0 })}
+                                        />
+                                    </td>
+                                    
+                                    <td className="p-4 text-center">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase inline-block w-24 text-center ${
+                                            displayStatus === 'PAGO' ? 'bg-emerald-100 text-emerald-700' :
+                                            displayStatus === 'ATRASADO' ? 'bg-red-100 text-red-700' :
+                                            'bg-amber-100 text-amber-700'
+                                        }`}>
+                                            {displayStatus}
+                                        </span>
+                                    </td>
+                                    
+                                    <td className="p-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            {/* Toggle Payment */}
+                                            <button 
+                                                onClick={() => handleUpdateFinancial(resident, { status: displayStatus === 'PAGO' ? 'PENDENTE' : 'PAGO', paymentDate: displayStatus === 'PAGO' ? '' : new Date().toISOString().split('T')[0] })}
+                                                className={`p-2 rounded-lg transition-colors ${displayStatus === 'PAGO' ? 'bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
+                                                title={displayStatus === 'PAGO' ? "Marcar como Pendente" : "Confirmar Pagamento"}
+                                            >
+                                                {displayStatus === 'PAGO' ? <X size={18} /> : <Check size={18} />}
+                                            </button>
+
+                                            {/* WhatsApp */}
+                                            {getWhatsAppPaymentLink(resident, { ...record, value, dueDate }) ? (
+                                                <a 
+                                                    href={getWhatsAppPaymentLink(resident, { ...record, value, dueDate }) || '#'}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shadow-sm"
+                                                    title="Enviar Cobrança WhatsApp"
+                                                >
+                                                    <MessageCircle size={18} />
+                                                </a>
+                                            ) : (
+                                                <button disabled className="p-2 bg-slate-200 text-slate-400 rounded-lg cursor-not-allowed">
+                                                    <MessageCircle size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {listData.length === 0 && (
+                                <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhum residente encontrado.</td></tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-  );
+    );
+  };
 
   const renderAdminManagement = () => {
     const today = new Date().toISOString().split('T')[0];

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -601,6 +602,7 @@ const App: React.FC = () => {
             onSaveHouseDocument={handleSaveHouseDocument}
             onDeleteHouseDocument={handleDeleteHouseDocument}
             onSaveDemand={handleSaveDemand} 
+            onUpdateResident={handleSaveResident}
           />
         );
       case 'medications':

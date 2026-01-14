@@ -1,5 +1,5 @@
 
-import { AppData, Product, Resident, Transaction, Prescription, MedicalAppointment, Demand, Professional, Employee, TimeSheetEntry, TechnicalSession, EvolutionRecord, ResidentDocument, Pharmacy, StaffDocument, HouseDocument } from "../types";
+import { AppData, Product, Resident, Transaction, Prescription, MedicalAppointment, Demand, Professional, Employee, TimeSheetEntry, TechnicalSession, EvolutionRecord, ResidentDocument, Pharmacy, StaffDocument, HouseDocument, FinancialRecord } from "../types";
 import { INITIAL_DATA as CONST_INITIAL_DATA, INITIAL_EMPLOYEE_ROLES } from "../constants";
 
 // Extendendo INITIAL_DATA do constants para incluir o novo campo vazio
@@ -53,6 +53,16 @@ const migrateHouseDocument = (d: any): HouseDocument => ({
   issueDate: d.issueDate || ''
 });
 
+const migrateFinancialRecord = (f: any): FinancialRecord => ({
+  id: f.id || generateSafeId(),
+  monthKey: f.monthKey || new Date().toISOString().slice(0, 7),
+  value: typeof f.value === 'number' ? f.value : 0,
+  dueDate: f.dueDate || '',
+  status: f.status || 'PENDENTE',
+  paymentDate: f.paymentDate || '',
+  notes: f.notes || ''
+});
+
 const migratePharmacy = (p: any): Pharmacy => ({
   id: p.id || generateSafeId(),
   name: p.name || 'Farmácia',
@@ -80,7 +90,11 @@ const migrateResident = (r: any): Resident => ({
     phone2: r.responsible?.phone2 || '',
     email: r.responsible?.email || ''
   },
-  documents: Array.isArray(r.documents) ? r.documents.map(migrateDocument) : []
+  documents: Array.isArray(r.documents) ? r.documents.map(migrateDocument) : [],
+  // Novos campos financeiros
+  defaultMonthlyFee: typeof r.defaultMonthlyFee === 'number' ? r.defaultMonthlyFee : 0,
+  defaultDueDay: typeof r.defaultDueDay === 'number' ? r.defaultDueDay : 10,
+  financialRecords: Array.isArray(r.financialRecords) ? r.financialRecords.map(migrateFinancialRecord) : []
 });
 
 const migrateProduct = (p: any): Product => ({

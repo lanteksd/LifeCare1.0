@@ -37,6 +37,17 @@ export interface HouseDocument {
   issueDate?: string; // Data de emissão
 }
 
+// --- NOVOS TIPOS FINANCEIROS ---
+export interface FinancialRecord {
+  id: string;
+  monthKey: string; // Formato YYYY-MM
+  value: number;
+  dueDate: string; // YYYY-MM-DD
+  status: 'PENDENTE' | 'PAGO' | 'ATRASADO';
+  paymentDate?: string; // Data real do pagamento
+  notes?: string;
+}
+
 export interface Pharmacy {
   id: string;
   name: string;
@@ -58,6 +69,12 @@ export interface Resident {
   pharmacyPhone?: string; // Legacy: Telefone principal
   pharmacies?: Pharmacy[]; // Novo: Lista de farmácias
   documents?: ResidentDocument[];
+  
+  // Novos Campos Financeiros
+  defaultMonthlyFee?: number; // Valor padrão da mensalidade
+  defaultDueDay?: number; // Dia padrão de vencimento (ex: dia 10)
+  financialRecords?: FinancialRecord[]; // Histórico de pagamentos
+  
   active: boolean;
 }
 
