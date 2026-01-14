@@ -519,15 +519,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
         <title>Relação Nominal de Colaboradores</title>
         <style>
             @page { size: A4; margin: 10mm; }
-            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10px; color: #000; padding: 0; margin: 0; }
+            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 9px; color: #000; padding: 0; margin: 0; }
             .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
             h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
             p { margin: 2px 0; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: middle; }
+            th, td { border: 1px solid #000; padding: 4px; text-align: left; vertical-align: middle; }
             th { background-color: #e5e7eb; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; }
             tr:nth-child(even) { background-color: #f9fafb; }
             .center { text-align: center; }
+            .nowrap { white-space: nowrap; }
             .signature-col { width: 150px; }
         </style>
       </head>
@@ -554,7 +555,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                 ${activeEmployees.map((emp, index) => `
                     <tr>
                         <td class="center">${index + 1}</td>
-                        <td>${emp.name}</td>
+                        <td class="nowrap">${emp.name}</td>
                         <td class="center">${emp.role}</td>
                         <td class="center">${emp.cpf || '-'}</td>
                         <td class="center">${emp.admissionDate ? emp.admissionDate.split('-').reverse().join('/') : '-'}</td>
