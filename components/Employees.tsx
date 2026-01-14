@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee, TimeSheetEntry } from '../types';
-import { Briefcase, Plus, Search, Edit2, Trash2, User, Save, X, Calendar, CheckCircle2, Clock, Settings, Printer, Camera } from 'lucide-react';
+import { Briefcase, Plus, Search, Edit2, Trash2, User, Save, X, Calendar, CheckCircle2, Clock, Settings, Printer, Camera, Contact } from 'lucide-react';
 
 interface EmployeesProps {
   data: AppData;
@@ -85,24 +85,53 @@ export const Employees: React.FC<EmployeesProps> = ({
     setCurrentEmployee(prev => ({ ...prev, cpf: value }));
   };
 
+  // --- UNIFIED STAFF LOGIC ---
+  // Combina funcionários internos com profissionais externos (Demandas)
+  const unifiedStaffList = useMemo(() => {
+    const internals = (data.employees || []).map(e => ({ ...e, source: 'INTERNAL' }));
+    
+    const externals = (data.professionals || []).map(p => ({
+      id: p.id,
+      name: p.name,
+      role: p.area.replace('_', ' '), // Usa a área como cargo
+      phone: p.phone,
+      cpf: '',
+      admissionDate: '',
+      active: true,
+      photo: p.photo,
+      source: 'EXTERNAL'
+    }));
+
+    return [...internals, ...externals];
+  }, [data.employees, data.professionals]);
+
   const filteredEmployees = useMemo(() => {
-    return (data.employees || [])
+    return unifiedStaffList
       .filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase()) || e.role.toLowerCase().includes(searchTerm.toLowerCase()))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [data.employees, searchTerm]);
+  }, [unifiedStaffList, searchTerm]);
 
+  // Apenas funcionários internos podem estar em plantão
   const activeEmployees = useMemo(() => {
     return (data.employees || []).filter(e => e.active).sort((a, b) => a.name.localeCompare(b.name));
   }, [data.employees]);
 
   // --- HANDLERS ---
 
-  const handleEdit = (employee: Employee) => {
+  const handleEdit = (employee: any) => {
+    if (employee.source === 'EXTERNAL') {
+      alert("Este profissional é gerenciado na aba 'Demandas'. Por favor, edite-o por lá.");
+      return;
+    }
     setCurrentEmployee(employee);
     setViewMode('FORM');
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: string, source: string) => {
+    if (source === 'EXTERNAL') {
+      alert("Este profissional é gerenciado na aba 'Demandas'. Por favor, exclua-o por lá.");
+      return;
+    }
     if (confirm("Tem certeza que deseja excluir este membro da equipe?")) {
       onDeleteEmployee(id);
     }
@@ -214,7 +243,6 @@ export const Employees: React.FC<EmployeesProps> = ({
           th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
           th { background-color: #f3f4f6; font-weight: bold; }
           
-          /* Estilo Ajustado: white-space nowrap impede quebra de linha */
           .name-col { 
             text-align: left; 
             white-space: nowrap; 
@@ -230,7 +258,6 @@ export const Employees: React.FC<EmployeesProps> = ({
           .signature-box { margin-top: 40px; display: flex; justify-content: space-around; }
           .signature-line { width: 200px; border-top: 1px solid #000; text-align: center; padding-top: 5px; }
           
-          /* Estilo da Bolinha Verde */
           .present-dot {
             height: 10px;
             width: 10px;
@@ -275,7 +302,6 @@ export const Employees: React.FC<EmployeesProps> = ({
         const dateStr = `${reportMonth}-${String(day).padStart(2, '0')}`;
         const isPresent = getPresenceStatus(emp.id, dateStr);
         if (isPresent) total++;
-        // Alterado de 'P' para a div com a classe present-dot
         cells += `<td style="${cellStyle}">${isPresent ? '<div class="present-dot"></div>' : ''}</td>`;
       });
       
@@ -308,7 +334,6 @@ export const Employees: React.FC<EmployeesProps> = ({
     printWindow.document.write(html);
     printWindow.document.close();
     
-    // Pequeno timeout para garantir que os estilos carreguem antes de imprimir
     setTimeout(() => {
         printWindow.print();
     }, 500);
@@ -456,30 +481,48 @@ export const Employees: React.FC<EmployeesProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredEmployees.map(emp => (
-            <div key={emp.id} className={`bg-white p-4 rounded-xl shadow-sm border ${emp.active ? 'border-slate-200' : 'border-slate-100 bg-slate-50 opacity-70'} hover:shadow-md transition-shadow`}>
+          {filteredEmployees.map(emp => {
+            const isExternal = (emp as any).source === 'EXTERNAL';
+            return (
+            <div key={emp.id} className={`bg-white p-4 rounded-xl shadow-sm border ${isExternal ? 'border-purple-200 bg-purple-50/50' : emp.active ? 'border-slate-200' : 'border-slate-100 bg-slate-50 opacity-70'} hover:shadow-md transition-shadow`}>
                <div className="flex justify-between items-start mb-3">
                  <div className="flex items-center gap-3">
-                    <div className="w-16 h-20 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
+                    <div className={`w-16 h-20 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0 ${isExternal ? 'ring-2 ring-purple-200' : ''}`}>
                       {emp.photo ? <img src={emp.photo} className="w-full h-full object-cover" /> : <User size={32} className="m-auto mt-4 text-slate-300" />}
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-800 leading-tight">{emp.name}</h3>
-                      <p className="text-xs text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded-full inline-block mt-1">{emp.role}</p>
+                      <p className={`text-xs font-medium px-2 py-0.5 rounded-full inline-block mt-1 ${isExternal ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {isExternal ? `Externo: ${emp.role}` : emp.role}
+                      </p>
                     </div>
                  </div>
+                 {isExternal && <div className="text-purple-400" title="Profissional Externo (Gerido em Demandas)"><Contact size={18}/></div>}
                </div>
                <div className="flex justify-between items-center mt-4 border-t pt-3">
-                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${emp.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                   {emp.active ? 'ATIVO' : 'INATIVO'}
+                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${isExternal ? 'bg-purple-100 text-purple-700' : emp.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                   {isExternal ? 'PROFISSIONAL' : emp.active ? 'ATIVO' : 'INATIVO'}
                  </span>
                  <div className="flex gap-2">
-                   <button onClick={() => handleEdit(emp)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"><Edit2 size={16}/></button>
-                   <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded"><Trash2 size={16}/></button>
+                   {/* Botões desabilitados ou escondidos para externos para evitar conflito de ID/Tipos */}
+                   <button 
+                     onClick={() => handleEdit(emp)} 
+                     className={`p-1.5 rounded ${isExternal ? 'text-slate-300 cursor-not-allowed' : 'text-blue-600 hover:bg-blue-50'}`}
+                     title={isExternal ? "Edite este perfil na aba Demandas" : "Editar"}
+                   >
+                     <Edit2 size={16}/>
+                   </button>
+                   <button 
+                     onClick={() => handleDelete(emp.id, (emp as any).source)} 
+                     className={`p-1.5 rounded ${isExternal ? 'text-slate-300 cursor-not-allowed' : 'text-red-600 hover:bg-red-50'}`}
+                     title={isExternal ? "Remova este perfil na aba Demandas" : "Excluir"}
+                   >
+                     <Trash2 size={16}/>
+                   </button>
                  </div>
                </div>
             </div>
-          ))}
+          )})}
           {filteredEmployees.length === 0 && <div className="col-span-full py-10 text-center text-slate-400">Nenhum membro encontrado.</div>}
         </div>
 

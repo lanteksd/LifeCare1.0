@@ -94,7 +94,7 @@ const getAreaHeaderStyle = (area: ProfessionalArea) => {
 };
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, onUpdateProfessional, onSaveHouseDocument, onDeleteHouseDocument, onSaveDemand }) => {
-  const [activeTab, setActiveTab] = useState<'TEAM' | 'HOUSE' | 'ADMIN'>('TEAM');
+  const [activeTab, setActiveTab] = useState<'TEAM' | 'HOUSE' | 'ADMIN' | 'FINANCIAL'>('TEAM');
   
   // Team Logic State
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
@@ -703,6 +703,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
       </div>
   );
 
+  // NOVO: Aba Financeiro Exclusiva
+  const renderFinancial = () => (
+    <div className="space-y-6 animate-in fade-in">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+                <h3 className="text-xl font-bold text-emerald-800 flex items-center gap-2">
+                    <Banknote size={24} /> Relatórios Financeiros
+                </h3>
+                <p className="text-emerald-700 mt-1">Gerenciamento de custos e fechamento mensal de consumo para cobrança.</p>
+            </div>
+            <div className="bg-white p-4 rounded-lg border border-emerald-100 shadow-sm w-full md:w-auto">
+                <button 
+                    onClick={handlePrintFinancialReport} 
+                    className="w-full md:w-auto bg-emerald-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+                >
+                    <Printer size={20} /> Imprimir Fechamento Mensal
+                </button>
+                <p className="text-xs text-slate-500 mt-2 text-center">Gera extrato de consumo dos últimos 30 dias por residente.</p>
+            </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Future Financial Cards can go here */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 opacity-60">
+                <h4 className="font-bold text-slate-700 mb-2">Histórico de Custos</h4>
+                <p className="text-sm text-slate-500">Em breve: Acompanhamento da evolução de gastos.</p>
+            </div>
+        </div>
+    </div>
+  );
+
   const renderAdminManagement = () => {
     const today = new Date().toISOString().split('T')[0];
     const activeResidents = data.residents.filter(r => r.active).sort((a,b) => a.name.localeCompare(b.name));
@@ -915,16 +946,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                 <button onClick={handlePrintLaudoReport} className="mt-6 w-full bg-blue-700 text-white py-2 rounded-lg font-bold hover:bg-blue-800 transition-colors flex items-center justify-center gap-2"><Printer size={18} /> Imprimir Relatório</button>
             </div>
 
-            {/* NOVO CARD: CONTROLE FINANCEIRO (SUBSTITUI O "EM BREVE") */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col justify-between">
-                <div>
-                    <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4 text-emerald-600"><Banknote size={24} /></div>
-                    <h3 className="font-bold text-lg text-slate-800">Relatório Financeiro</h3>
-                    <p className="text-sm text-slate-500 mt-2">Extrato de consumo mensal por residente (Fraldas, Medicamentos e Itens de Higiene) para cobrança.</p>
-                </div>
-                <button onClick={handlePrintFinancialReport} className="mt-6 w-full bg-emerald-700 text-white py-2 rounded-lg font-bold hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2"><Printer size={18} /> Fechamento Mensal</button>
-            </div>
-
             {/* NOVO CARD: RELAÇÃO DE COLABORADORES */}
             <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow flex flex-col justify-between">
                 <div>
@@ -955,12 +976,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
            <button onClick={() => setActiveTab('TEAM')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'TEAM' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Users size={16} /> GESTÃO EQUIPE</button>
            <button onClick={() => setActiveTab('HOUSE')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'HOUSE' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Home size={16} /> GESTÃO CASA</button>
            <button onClick={() => setActiveTab('ADMIN')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'ADMIN' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Settings size={16} /> GESTÃO ADM</button>
+           <button onClick={() => setActiveTab('FINANCIAL')} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${activeTab === 'FINANCIAL' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}><Banknote size={16} /> FINANCEIRO</button>
         </div>
       </div>
 
       {activeTab === 'TEAM' && renderTeamManagement()}
       {activeTab === 'HOUSE' && renderHouseManagement()}
       {activeTab === 'ADMIN' && renderAdminManagement()}
+      {activeTab === 'FINANCIAL' && renderFinancial()}
 
       {/* Add Document Modal (Team) */}
       {isModalOpen && (
