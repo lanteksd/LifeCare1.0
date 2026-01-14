@@ -509,7 +509,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
   };
 
   const handlePrintEmployeeList = () => {
-    const activeEmployees = (data.employees || []).filter(e => e.active).sort((a,b) => a.name.localeCompare(b.name));
+    // 1. Internal Employees
+    const activeEmployees = (data.employees || []).filter(e => e.active).map(e => ({
+      name: e.name,
+      role: e.role,
+      cpf: e.cpf || '-',
+      admission: e.admissionDate ? e.admissionDate.split('-').reverse().join('/') : '-',
+      phone: e.phone || '-'
+    }));
+
+    // 2. External Professionals
+    const professionals = (data.professionals || []).map(p => ({
+      name: p.name,
+      role: p.area.replace('_', ' '), // Use Area as Role
+      cpf: '-',
+      admission: '-',
+      phone: p.phone || '-'
+    }));
+
+    // 3. Combine and Sort
+    const fullList = [...activeEmployees, ...professionals].sort((a,b) => a.name.localeCompare(b.name));
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) return alert("Permita pop-ups para imprimir.");
 
@@ -519,22 +539,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
         <title>Relação Nominal de Colaboradores</title>
         <style>
             @page { size: A4; margin: 10mm; }
-            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 9px; color: #000; padding: 0; margin: 0; }
+            body { font-family: 'Helvetica', Arial, sans-serif; font-size: 10px; color: #000; padding: 0; margin: 0; }
             .header { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #000; padding-bottom: 5px; }
             h1 { margin: 0; font-size: 16px; text-transform: uppercase; }
             p { margin: 2px 0; }
             table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-            th, td { border: 1px solid #000; padding: 4px; text-align: left; vertical-align: middle; }
+            th, td { border: 1px solid #000; padding: 4px; text-align: left; vertical-align: middle; white-space: nowrap; }
             th { background-color: #e5e7eb; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9px; }
             tr:nth-child(even) { background-color: #f9fafb; }
             .center { text-align: center; }
-            .nowrap { white-space: nowrap; }
-            .signature-col { width: 150px; }
         </style>
       </head>
       <body>
         <div class="header">
-            <h1>Relação Nominal de Colaboradores</h1>
+            <h1>Relação Nominal de Colaboradores (Equipe & Profissionais)</h1>
             <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
             <p>Status: ATIVOS</p>
         </div>
@@ -544,23 +562,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                 <tr>
                     <th width="30">Nº</th>
                     <th>Nome Completo</th>
-                    <th width="100">Cargo / Função</th>
-                    <th width="90">CPF</th>
-                    <th width="80">Admissão</th>
-                    <th width="90">Telefone</th>
-                    <th class="signature-col">Assinatura</th>
+                    <th>Cargo / Função</th>
+                    <th>CPF</th>
+                    <th>Admissão</th>
+                    <th>Telefone</th>
                 </tr>
             </thead>
             <tbody>
-                ${activeEmployees.map((emp, index) => `
+                ${fullList.map((emp, index) => `
                     <tr>
                         <td class="center">${index + 1}</td>
-                        <td class="nowrap">${emp.name}</td>
+                        <td>${emp.name}</td>
                         <td class="center">${emp.role}</td>
-                        <td class="center">${emp.cpf || '-'}</td>
-                        <td class="center">${emp.admissionDate ? emp.admissionDate.split('-').reverse().join('/') : '-'}</td>
-                        <td class="center">${emp.phone || '-'}</td>
-                        <td></td>
+                        <td class="center">${emp.cpf}</td>
+                        <td class="center">${emp.admission}</td>
+                        <td class="center">${emp.phone}</td>
                     </tr>
                 `).join('')}
             </tbody>
