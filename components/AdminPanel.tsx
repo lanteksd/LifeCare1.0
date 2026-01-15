@@ -71,7 +71,7 @@ const ADMISSION_CHECKLIST = [
   { key: 'CPF', label: 'CPF', conditional: false },
   { key: 'CTPS', label: 'Carteira de Trabalho (Digital)', conditional: false },
   { key: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de Residência', conditional: false },
-  { key: 'TITULO_ELEITOR', label: 'Título de Eleitor', conditional: false },
+  { key: 'TITULO_ELEITOR', label: 'Título de eleitor', conditional: false },
   { key: 'RESERVISTA', label: 'Certificado de Reservista', conditional: true },
   { key: 'CERTIDAO_NASC_CASAMENTO', label: 'Certidão Nasc./Casamento', conditional: false },
   { key: 'ESCOLARIDADE', label: 'Comprovante de Escolaridade', conditional: false },
@@ -790,8 +790,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                             
                             // Default Values
                             const defaultDay = resident.defaultDueDay || 10;
-                            const displayDate = record?.dueDate || `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
                             const displayValue = record ? record.value : (resident.defaultMonthlyFee || 0);
+                            
+                            let displayDateStr = record?.dueDate;
+                            if (!displayDateStr) {
+                                displayDateStr = `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
+                            }
+                            
+                            // Safe Date Formatting
+                            const [y, m, d] = displayDateStr.split('-').map(Number);
+                            const displayDateObj = new Date(y, m - 1, d, 12, 0, 0); // Noon to avoid timezone shift
+                            const formattedDate = displayDateObj.toLocaleDateString('pt-BR');
 
                             const paymentLink = record ? getWhatsAppPaymentLink(resident, record) : null;
 
@@ -804,10 +813,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                         {resident.name}
                                         {isMP && <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded border border-indigo-200 font-bold ml-1">MP</span>}
                                     </td>
-                                    <td className="p-4 text-center">
-                                        {new Date(displayDate).toLocaleDateString('pt-BR')}
+                                    <td className="p-4 text-center text-slate-600">
+                                        {formattedDate}
                                     </td>
-                                    <td className="p-4 text-right font-mono">
+                                    <td className="p-4 text-right font-mono text-slate-700">
                                         {formatCurrency(displayValue)}
                                     </td>
                                     <td className="p-4 text-center">
@@ -836,7 +845,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                                 )}
                                                 
                                                 <button 
-                                                    onClick={() => handleUpdateFinancial(resident, { status: isPaid ? 'PENDENTE' : 'PAGO', paymentDate: isPaid ? undefined : new Date().toISOString().split('T')[0] })}
+                                                    onClick={() => handleUpdateFinancial(resident, { 
+                                                        status: isPaid ? 'PENDENTE' : 'PAGO', 
+                                                        paymentDate: isPaid ? undefined : new Date().toISOString().split('T')[0],
+                                                        value: displayValue,
+                                                        dueDate: displayDateStr
+                                                    })}
                                                     className={`p-2 rounded-lg transition-colors font-bold text-xs flex items-center gap-1 ${isPaid ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'}`}
                                                 >
                                                     {isPaid ? 'Desfazer' : 'Confirmar'}
