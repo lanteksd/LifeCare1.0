@@ -818,7 +818,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                             const displayDateObj = new Date(y, m - 1, d, 12, 0, 0); // Noon to avoid timezone shift
                             const formattedDate = displayDateObj.toLocaleDateString('pt-BR');
 
-                            const paymentLink = record ? getWhatsAppPaymentLink(resident, record) : null;
+                            // Use existing record or create a virtual one based on defaults to enable WhatsApp link
+                            const effectiveRecord: FinancialRecord = record || {
+                                id: 'virtual',
+                                monthKey: financialMonth,
+                                value: displayValue,
+                                dueDate: displayDateStr,
+                                status: 'PENDENTE'
+                            };
+
+                            const paymentLink = getWhatsAppPaymentLink(resident, effectiveRecord);
 
                             return (
                                 <tr key={resident.id} className="hover:bg-slate-50 transition-colors">
@@ -855,7 +864,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                                         <MessageCircle size={16}/>
                                                     </a>
                                                 ) : (
-                                                    <button disabled className="p-2 text-slate-300 bg-slate-50 rounded-lg cursor-not-allowed">
+                                                    <button disabled className="p-2 text-slate-300 bg-slate-50 rounded-lg cursor-not-allowed" title="Sem telefone cadastrado">
                                                         <MessageCircle size={16}/>
                                                     </button>
                                                 )}
