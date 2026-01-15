@@ -74,6 +74,7 @@ export interface Resident {
   defaultMonthlyFee?: number; // Valor padrão da mensalidade
   defaultDueDay?: number; // Dia padrão de vencimento (ex: dia 10)
   financialRecords?: FinancialRecord[]; // Histórico de pagamentos
+  isMP?: boolean; // Novo: Ministério Público (considerar pago)
   
   active: boolean;
 }

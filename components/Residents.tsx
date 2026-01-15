@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { AppData, Resident, Responsible, Transaction, ResidentDocument, Pharmacy, Demand, ProfessionalArea } from '../types';
-import { Search, Plus, Edit2, Trash2, Phone, Mail, User, Eye, EyeOff, ArrowLeft, Package, Clock, Calendar, Camera, Upload, MessageCircle, Save, X, FileText, CheckCircle2, Users, Link, ExternalLink, Building2, AlertTriangle, FileCheck, Info } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Phone, Mail, User, Eye, EyeOff, ArrowLeft, Package, Clock, Calendar, Camera, Upload, MessageCircle, Save, X, FileText, CheckCircle2, Users, Link, ExternalLink, Building2, AlertTriangle, FileCheck, Info, Banknote } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ResidentsProps {
@@ -29,7 +29,10 @@ const EmptyResident: Resident = {
   pharmacyPhone: '',
   pharmacies: [],
   active: true,
-  documents: []
+  documents: [],
+  isMP: false,
+  defaultMonthlyFee: 0,
+  defaultDueDay: 10
 };
 
 export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, onDeleteTransaction, onUpdateTransaction, onSaveDemand }) => {
@@ -761,17 +764,30 @@ export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, on
             {/* TAB: CONTACT */}
             {activeFormTab === 'CONTACT' && (
               <div className="space-y-6 animate-in fade-in">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Nome Responsável</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border border-slate-300 rounded-md"
-                    value={currentResident.responsible.name}
-                    onChange={e => setCurrentResident({
-                      ...currentResident, 
-                      responsible: {...currentResident.responsible, name: e.target.value}
-                    })}
-                  />
+                <div className="flex gap-4 items-end">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Nome Responsável</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border border-slate-300 rounded-md"
+                      value={currentResident.responsible.name}
+                      onChange={e => setCurrentResident({
+                        ...currentResident, 
+                        responsible: {...currentResident.responsible, name: e.target.value}
+                      })}
+                    />
+                  </div>
+                  <div className="pb-2">
+                    <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border border-slate-200 px-3 py-2 rounded-md hover:bg-slate-100 transition-colors">
+                        <input 
+                          type="checkbox"
+                          checked={currentResident.isMP || false}
+                          onChange={e => setCurrentResident({...currentResident, isMP: e.target.checked})}
+                          className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm font-bold text-slate-700">MP</span>
+                    </label>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Parentesco</label>
@@ -824,6 +840,37 @@ export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, on
                       responsible: {...currentResident.responsible, email: e.target.value}
                     })}
                   />
+                </div>
+
+                <div className="pt-4 border-t border-slate-100">
+                    <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
+                       <Banknote size={16} className="text-emerald-600"/> Configuração Financeira
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Valor Mensalidade (R$)</label>
+                            <input 
+                                type="number" 
+                                step="0.01"
+                                placeholder="0.00"
+                                className="w-full p-2 border border-slate-300 rounded-md font-bold"
+                                value={currentResident.defaultMonthlyFee || ''}
+                                onChange={e => setCurrentResident({ ...currentResident, defaultMonthlyFee: parseFloat(e.target.value) || 0 })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Dia de Vencimento</label>
+                            <input 
+                                type="number" 
+                                min="1"
+                                max="31"
+                                placeholder="Ex: 10"
+                                className="w-full p-2 border border-slate-300 rounded-md"
+                                value={currentResident.defaultDueDay || ''}
+                                onChange={e => setCurrentResident({ ...currentResident, defaultDueDay: parseInt(e.target.value) || 10 })}
+                            />
+                        </div>
+                    </div>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100">

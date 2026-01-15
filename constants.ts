@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import { DiaperSize, ProfessionalArea } from "./types";
 
 export const DIAPER_SIZES: DiaperSize[] = ['P', 'M', 'G', 'EG', 'XXG'];
@@ -106,68 +101,8 @@ const NEW_MEDICATIONS = [
   'VITAMINA B2 50mg', 'VITAMINA B6 50mg', 'ZOLPIDEM 10mg'
 ].map(createMed);
 
-// Helper for residents
-const createResident = (id: string, name: string, cpf: string, birthDate: string, admissionDate: string, sex: string) => ({
-  id: `res_${id}`,
-  name: name,
-  cpf: cpf,
-  birthDate: birthDate.split('/').reverse().join('-'), // Convert DD/MM/YYYY to YYYY-MM-DD
-  admissionDate: admissionDate.split('/').reverse().join('-'),
-  room: 'A definir',
-  dailyExchangeEstimate: 5, // PADRÃO ALTERADO PARA 5
-  absorbentDailyExchangeEstimate: 0, // Novo padrão para absorventes
-  active: true,
-  observations: `Sexo: ${sex}. RG incluído na ficha física.`,
-  responsible: { name: '', relation: '', phone1: '', phone2: '', email: '' },
-  documents: []
-});
-
-const residentsList = [
-  createResident('1', 'ADIMAR ALVES', '060.141.557-40', '13/04/1951', '15/01/2024', 'M'),
-  createResident('2', 'ALUIZIO AQUINO DA SILVA', '607.937.327-00', '11/10/1948', '08/03/2025', 'M'),
-  createResident('3', 'ANA MARIA FERNANDES LIMA', '318.962.000-87', '15/05/1956', '03/09/2022', 'F'),
-  createResident('4', 'ANGELA MARIA DE AZEVEDO GONÇALVES', '648.264.907-63', '13/12/1959', '17/06/2025', 'F'),
-  createResident('5', 'CARLOS ALBERTO ABADE', '065.648.107-25', '28/05/1945', '11/03/2025', 'M'),
-  createResident('6', 'CARLOS HENRIQUE DO NASCIMENTO', '022.098.017-96', '21/11/1973', '14/10/2025', 'M'),
-  createResident('7', 'CARMEN FERNANDES FRANCO GOMES', '896.974.217-49', '07/03/1950', '28/12/2024', 'F'),
-  createResident('8', 'CLESEO BARANDA FILHO', '372.025.027-04', '01/01/1956', '15/06/2025', 'M'),
-  createResident('9', 'DAMIÃO DE CARVALHO', '469.989.697-91', '29/01/1953', '14/01/2025', 'M'),
-  createResident('10', 'DANIEL DA SILVA', '692.582.607-71', '26/05/1960', '05/11/2025', 'M'),
-  createResident('11', 'EPHIGENIA SILVA BONFIM', '103.397.937-67', '16/12/1936', '17/03/2025', 'F'),
-  createResident('12', 'FERNANDO MARIANO DA SILVA', '124.713.107-61', '24/12/1990', '06/12/2023', 'M'),
-  createResident('13', 'GERALDO ROSA DE SOUZA', '415.702.787-68', '10/06/1948', '27/12/2024', 'M'),
-  createResident('14', 'GISELDA DALFIOR DE OLIVEIRA', '051.435.107-16', '12/01/1957', '08/04/2023', 'F'),
-  createResident('15', 'HELENICE VITORIANO DA SILVA', '855.284.807-44', '12/12/1941', '23/11/2022', 'F'),
-  createResident('16', 'JAIRO MARQUES DA SILVA', '265.346.497-72', '15/02/1948', '30/12/2023', 'M'),
-  createResident('17', 'JOSE EVERALDO DO NASCIMENTO', '549.084.697-68', '03/03/1945', '19/09/2025', 'M'),
-  createResident('18', 'JOSE MANOEL DOS SANTOS', '607.204.177-91', '19/03/1948', '16/10/2025', 'M'),
-  createResident('19', 'JOSÉ MARQUES DIAS', '205.797.057-49', '22/07/1945', '07/12/2022', 'M'),
-  createResident('20', 'JOSÉ OSMAR MESQUITA TERCEIRO', '384.823.637-00', '15/02/1950', '16/03/2024', 'M'),
-  createResident('21', 'JUARES PASSOS', '670.513.597-20', '30/09/1961', '18/08/2025', 'M'),
-  createResident('22', 'LAERCIO LUIZ DOS SANTOS', '543.931.757-00', '12/12/1953', '10/09/2024', 'M'),
-  createResident('23', 'LUIZ CARLOS CARDOSO', '656.371.947-34', '17/11/1954', '16/01/2025', 'M'),
-  createResident('24', 'MANOEL FERREIRA DAMASCENO', '075.538.407-50', '02/12/1942', '12/08/2025', 'M'),
-  createResident('25', 'MARIA DE LOURDES COSTA RUSSO', '102.663.667-16', '19/05/1939', '01/06/2024', 'F'),
-  createResident('26', 'MARIA DO CARMO DE OLIVEIRA', '131.194.267-09', '21/09/1938', '13/08/2018', 'F'),
-  createResident('27', 'MARIA ENIR DA SILVA MACHADO', '756.149.527-72', '01/09/1933', '06/01/2025', 'F'),
-  createResident('28', 'MARIA HELENA DE MENEZES BOMFIM', '857.931.327-91', '28/07/1938', '21/02/2025', 'F'),
-  createResident('29', 'MARIA ROSA DE AZEVEDO', '377.162.987-04', '06/05/1928', '10/07/2023', 'F'),
-  createResident('30', 'MARLENE RAINHA SOARES DA CUNHA', '879.848.147-91', '14/02/1946', '12/04/2022', 'F'),
-  createResident('31', 'MARLUCE ALBUQUERQUE DE ARAUJO', '465.904.557-91', '04/06/1950', '29/08/2025', 'F'),
-  createResident('32', 'MARTA BEATRIZ SANTOS', '491.939.297-49', '31/10/1956', '11/03/2023', 'F'),
-  createResident('33', 'NADIR RODRIGUES SILVA LIMA', '705.940.407-44', '30/10/1952', '28/05/2025', 'F'),
-  createResident('34', 'NEUSA JOSE DE OLIVEIRA DOS SANTOS', '635.438.187-91', '02/02/1956', '07/09/2025', 'F'),
-  createResident('35', 'PAULO EVANGELISTA DE ARAUJO', '403.149.367-34', '25/07/1944', '11/08/2021', 'M'),
-  createResident('36', 'PEDRO RAMOS DA SILVA', '913.683.087-91', '06/01/1964', '26/06/2025', 'M'),
-  createResident('37', 'REGINA LUCIA DOS SANTOS RAMOS', '883.597.277-91', '24/06/1942', '23/07/2025', 'F'),
-  createResident('38', 'ROSA MARIA JESUS DA SILVA', '602.609.477-68', '31/08/1959', '01/03/2024', 'F'),
-  createResident('39', 'SELMA ANTUNES DE SOUZA', '402.180.667-91', '05/10/1948', '02/09/2015', 'F'),
-  createResident('40', 'SERGIO CARLOS CARVALHO DOS SANTOS', '831.118.677-49', '14/04/1965', '02/01/2025', 'M'),
-  createResident('41', 'SEVERINA MENDES DA SILVA', '748.831.867-68', '23/10/1947', '07/10/2024', 'F'),
-  createResident('42', 'SILVIA MARTINS NAZARETH', '760.649.137-20', '28/12/1962', '25/05/2025', 'F'),
-  createResident('43', 'VANDERLEI ASSIS DO NASCIMENTO', '348.950.787-87', '06/12/1952', '30/11/2019', 'M'),
-  createResident('44', 'VERA LÚCIA DA SILVA', '851.594.257-72', '12/01/1964', '05/11/2024', 'F')
-].sort((a, b) => a.name.localeCompare(b.name));
+// No pre-registered residents
+const residentsList: any[] = [];
 
 export const INITIAL_DATA = {
   residents: residentsList,
