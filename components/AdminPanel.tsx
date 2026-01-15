@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea, Resident, FinancialRecord } from '../types';
 import { PROFESSIONAL_AREAS } from '../constants';
@@ -590,11 +589,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     const dueDateFormatted = record.dueDate ? new Date(record.dueDate).toLocaleDateString('pt-BR') : 'A definir';
     const valueFormatted = formatCurrency(record.value);
 
-    let message = `Olá ${resident.responsible.name},\n\n`;
-    message += `Lembrete da mensalidade de *${capitalizedMonth}* referente ao residente *${resident.name}*.\n\n`;
-    message += `📅 Vencimento: *${dueDateFormatted}*\n`;
-    message += `💲 Valor: *${valueFormatted}*\n\n`;
-    message += `Caso já tenha efetuado o pagamento, por favor, desconsidere esta mensagem.\n\nAtenciosamente,\nEquipe LifeCare.`;
+    let message = `Olá, ${resident.responsible.name}.\n\n`;
+    message += `Informamos que ainda não identificamos o pagamento da mensalidade de ${capitalizedMonth} referente ao residente ${resident.name}, vencida em ${dueDateFormatted}.\n\n`;
+    message += `Dados para pagamento:\n\n`;
+    message += `Valor: ${valueFormatted}\n\n`;
+    message += `Chave PIX: aconchegodapazseropedica@gmail.com\n\n`;
+    message += `A pontualidade do pagamento nos permite assegurar a continuidade dos cuidados dedicados e o fornecimento de todos os recursos essenciais ao bem-estar do residente.\n\n`;
+    message += `Caso o pagamento já tenha sido efetuado, por favor, envie o comprovante para que possamos atualizar nosso sistema.\n\n`;
+    message += `Atenciosamente, Equipe Aconchego da Paz`;
 
     return `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
   };
