@@ -27,7 +27,8 @@ import {
   MapPin,
   FileWarning,
   UserX,
-  FileText
+  FileText,
+  Banknote
 } from 'lucide-react';
 import {
   BarChart,
@@ -189,7 +190,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate }) => {
 
   // --- NEW: DAILY ALERT BOARD LOGIC ---
   const todaysAlerts = useMemo(() => {
-    const alerts: Array<{ type: 'BIRTHDAY' | 'APPOINTMENT' | 'DOC_EXPIRATION' | 'RESIDENT_DOC', title: string, subtitle: string, time?: string, id: string, icon: any, color: string }> = [];
+    const alerts: Array<{ type: 'BIRTHDAY' | 'APPOINTMENT' | 'DOC_EXPIRATION' | 'RESIDENT_DOC' | 'PAYMENT_DUE', title: string, subtitle: string, time?: string, id: string, icon: any, color: string }> = [];
 
     // 1. Today's Birthdays
     birthdayResidents.forEach(r => {
@@ -317,8 +318,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate }) => {
         }
     });
 
-    // Sort priority: Resident Docs/House Docs (Critical) > Birthdays > Appointments
+    // 5. MONTHLY FEE DUE TODAY
+    residents.forEach(resident => {
+      if (!resident.active || resident.isMP) return; // Ignora inativos e MP
+
+      const currentMonthKey = today.slice(0, 7); // YYYY-MM
+      
+      // Procura registro financeiro deste mês
+      const thisMonthRecord = resident.financialRecords?.find(r => r.monthKey === currentMonthKey);
+      
+      let isDueToday = false;
+      let amount = resident.defaultMonthlyFee || 0;
+
+      if (thisMonthRecord) {
+          // Se existe registro, confere a data de vencimento e se está pendente
+          if (thisMonthRecord.dueDate === today && thisMonthRecord.status === 'PENDENTE') {
+              isDueToday = true;
+              amount = thisMonthRecord.value;
+          }
+      } else {
+          // Se não existe registro, usa o dia padrão configurado
+          const dueDay = resident.defaultDueDay || 10;
+          if (dueDay === currentDayNumber) {
+              isDueToday = true;
+          }
+      }
+
+      if (isDueToday) {
+           alerts.push({
+              id: `fin_${resident.id}`,
+              type: 'PAYMENT_DUE',
+              title: `Vencimento: ${getResidentFirstName(resident.name)}`,
+              subtitle: `Mensalidade vence hoje (R$ ${amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`,
+              icon: Banknote,
+              color: 'text-emerald-700 bg-emerald-100 border-emerald-200'
+          });
+      }
+    });
+
+    // Sort priority: Payment Due (High) > Resident Docs/House Docs > Birthdays > Appointments
     return alerts.sort((a, b) => {
+      if (a.type === 'PAYMENT_DUE' && b.type !== 'PAYMENT_DUE') return -1;
+      if (b.type === 'PAYMENT_DUE' && a.type !== 'PAYMENT_DUE') return 1;
+
       const isDocA = a.type === 'DOC_EXPIRATION' || a.type === 'RESIDENT_DOC';
       const isDocB = b.type === 'DOC_EXPIRATION' || b.type === 'RESIDENT_DOC';
       
@@ -389,7 +431,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data, onNavigate }) => {
                         className="flex-1 overflow-x-auto hide-scrollbar flex gap-3 items-center scroll-smooth px-1"
                     >
                         {todaysAlerts.map(alert => (
-                           <div key={alert.id} className="flex items-center gap-3 bg-slate-50 p-2 pr-4 rounded-lg border border-slate-100 shrink-0 min-w-[200px] hover:shadow-md transition-shadow">
+                           <div key={alert.id} className={`flex items-center gap-3 bg-slate-50 p-2 pr-4 rounded-lg border shrink-0 min-w-[200px] hover:shadow-md transition-shadow ${alert.type === 'PAYMENT_DUE' ? 'border-emerald-200 bg-emerald-50' : 'border-slate-100'}`}>
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${alert.color}`}>
                                  <alert.icon size={18} />
                               </div>
