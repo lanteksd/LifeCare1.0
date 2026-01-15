@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea, Resident, FinancialRecord } from '../types';
 import { PROFESSIONAL_AREAS } from '../constants';
-import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning, Banknote, FileBadge, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle2, MessageCircle, Save, Clock } from 'lucide-react';
+import { Shield, Search, User, FileText, Plus, Link, Trash2, ExternalLink, Briefcase, Contact, X, Check, ClipboardCheck, AlertCircle, AlertTriangle, Users, Home, Settings, Printer, Activity, CheckSquare, ListTodo, Pill, Baby, Send, Circle, UserCheck, FileWarning, Banknote, FileBadge, Calendar, TrendingUp, TrendingDown, DollarSign, CheckCircle2, MessageCircle, Save, Clock, Filter, ArrowUpDown } from 'lucide-react';
 
 interface AdminPanelProps {
   data: AppData;
@@ -113,6 +113,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
   // Financial Logic State
   const [financialMonth, setFinancialMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [financialSearch, setFinancialSearch] = useState('');
+  const [financialStatusFilter, setFinancialStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'MP'>('ALL');
+  const [financialSort, setFinancialSort] = useState<'NAME' | 'DUE_DATE_ASC' | 'DUE_DATE_DESC'>('DUE_DATE_ASC');
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -752,38 +754,105 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
   );
 
   const renderFinancialManagement = () => {
-    // Filter active residents and sort
-    const residentsList = data.residents
+    // PRE-PROCESSING: Determine status and sort value for each resident
+    const processedList = data.residents
         .filter(r => r.active)
-        .filter(r => r.name.toLowerCase().includes(financialSearch.toLowerCase()))
-        .sort((a, b) => a.name.localeCompare(b.name));
+        .map(r => {
+             const record = getFinancialRecord(r, financialMonth);
+             const isMP = r.isMP;
+             const isPaid = record?.status === 'PAGO';
+             
+             // Determine exact status for filtering
+             let statusFilterKey: 'PENDING' | 'PAID' | 'MP' = 'PENDING';
+             if (isMP) statusFilterKey = 'MP';
+             else if (isPaid) statusFilterKey = 'PAID';
+             else statusFilterKey = 'PENDING';
+
+             // Determine effective due date for sorting
+             let dueDateStr = record?.dueDate || `${financialMonth}-${String(r.defaultDueDay || 10).padStart(2, '0')}`;
+             
+             return {
+                 resident: r,
+                 record,
+                 statusFilterKey,
+                 dueDateStr
+             };
+        });
+
+    // FILTERING AND SORTING
+    const residentsList = processedList
+        .filter(item => {
+            const matchesSearch = item.resident.name.toLowerCase().includes(financialSearch.toLowerCase());
+            const matchesStatus = financialStatusFilter === 'ALL' || item.statusFilterKey === financialStatusFilter;
+            return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+            if (financialSort === 'NAME') {
+                return a.resident.name.localeCompare(b.resident.name);
+            } else if (financialSort === 'DUE_DATE_ASC') {
+                return a.dueDateStr.localeCompare(b.dueDateStr) || a.resident.name.localeCompare(b.resident.name);
+            } else if (financialSort === 'DUE_DATE_DESC') {
+                return b.dueDateStr.localeCompare(a.dueDateStr) || a.resident.name.localeCompare(b.resident.name);
+            }
+            return 0;
+        });
 
     return (
         <div className="space-y-6 animate-in fade-in">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
                 <div>
                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                         <Banknote className="text-emerald-600" /> Painel Financeiro
                     </h3>
                     <p className="text-sm text-slate-500">Controle de mensalidades e status de pagamento.</p>
                 </div>
-                <div className="flex gap-3 items-center w-full md:w-auto">
-                    <div className="relative flex-1 md:w-64">
-                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                       <input 
-                         type="text" 
-                         placeholder="Buscar residente..."
-                         className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm"
-                         value={financialSearch}
-                         onChange={e => setFinancialSearch(e.target.value)}
-                       />
+                
+                <div className="flex flex-col md:flex-row gap-3 items-center w-full xl:w-auto">
+                    {/* FILTROS */}
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <select 
+                            className="p-2 border border-slate-300 rounded-lg text-sm bg-slate-50 font-medium"
+                            value={financialStatusFilter}
+                            onChange={(e) => setFinancialStatusFilter(e.target.value as any)}
+                        >
+                            <option value="ALL">Todos os Status</option>
+                            <option value="PENDING">Pendentes</option>
+                            <option value="PAID">Pagos</option>
+                            <option value="MP">MP (Cobertos)</option>
+                        </select>
+
+                        <div className="relative">
+                            <select 
+                                className="p-2 pl-8 border border-slate-300 rounded-lg text-sm bg-slate-50 font-medium appearance-none pr-8"
+                                value={financialSort}
+                                onChange={(e) => setFinancialSort(e.target.value as any)}
+                            >
+                                <option value="DUE_DATE_ASC">Vencimento (Crescente)</option>
+                                <option value="DUE_DATE_DESC">Vencimento (Decrescente)</option>
+                                <option value="NAME">Nome (A-Z)</option>
+                            </select>
+                            <ArrowUpDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"/>
+                        </div>
                     </div>
-                    <input 
-                        type="month" 
-                        className="p-2 border border-slate-300 rounded-lg font-bold text-slate-700"
-                        value={financialMonth}
-                        onChange={e => setFinancialMonth(e.target.value)}
-                    />
+
+                    <div className="flex gap-2 w-full md:w-auto">
+                        <div className="relative flex-1 md:w-48">
+                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                           <input 
+                             type="text" 
+                             placeholder="Buscar residente..."
+                             className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm"
+                             value={financialSearch}
+                             onChange={e => setFinancialSearch(e.target.value)}
+                           />
+                        </div>
+                        <input 
+                            type="month" 
+                            className="p-2 border border-slate-300 rounded-lg font-bold text-slate-700 w-full md:w-auto"
+                            value={financialMonth}
+                            onChange={e => setFinancialMonth(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -799,23 +868,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {residentsList.map(resident => {
-                            const record = getFinancialRecord(resident, financialMonth);
+                        {residentsList.map(({ resident, record, dueDateStr }) => {
                             const isPaid = record?.status === 'PAGO';
-                            const isMP = resident.isMP; // MP Status Check
+                            const isMP = resident.isMP; 
                             
                             // Default Values
-                            const defaultDay = resident.defaultDueDay || 10;
                             const displayValue = record ? record.value : (resident.defaultMonthlyFee || 0);
                             
-                            let displayDateStr = record?.dueDate;
-                            if (!displayDateStr) {
-                                displayDateStr = `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
-                            }
-                            
                             // Safe Date Formatting
-                            const [y, m, d] = displayDateStr.split('-').map(Number);
-                            const displayDateObj = new Date(y, m - 1, d, 12, 0, 0); // Noon to avoid timezone shift
+                            const [y, m, d] = dueDateStr.split('-').map(Number);
+                            const displayDateObj = new Date(y, m - 1, d, 12, 0, 0); 
                             const formattedDate = displayDateObj.toLocaleDateString('pt-BR');
 
                             // Use existing record or create a virtual one based on defaults to enable WhatsApp link
@@ -823,7 +885,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                 id: 'virtual',
                                 monthKey: financialMonth,
                                 value: displayValue,
-                                dueDate: displayDateStr,
+                                dueDate: dueDateStr,
                                 status: 'PENDENTE'
                             };
 
@@ -874,7 +936,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                                                         status: isPaid ? 'PENDENTE' : 'PAGO', 
                                                         paymentDate: isPaid ? undefined : new Date().toISOString().split('T')[0],
                                                         value: displayValue,
-                                                        dueDate: displayDateStr
+                                                        dueDate: dueDateStr
                                                     })}
                                                     className={`p-2 rounded-lg transition-colors font-bold text-xs flex items-center gap-1 ${isPaid ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'}`}
                                                 >
