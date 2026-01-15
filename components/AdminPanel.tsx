@@ -71,7 +71,7 @@ const ADMISSION_CHECKLIST = [
   { key: 'CPF', label: 'CPF', conditional: false },
   { key: 'CTPS', label: 'Carteira de Trabalho (Digital)', conditional: false },
   { key: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de Residência', conditional: false },
-  { key: 'TITULO_ELEITOR', label: 'Título de Eleitor', conditional: false },
+  { key: 'TITULO_ELEITOR', label: 'Título de eleitor', conditional: false },
   { key: 'RESERVISTA', label: 'Certificado de Reservista', conditional: true },
   { key: 'CERTIDAO_NASC_CASAMENTO', label: 'Certidão Nasc./Casamento', conditional: false },
   { key: 'ESCOLARIDADE', label: 'Comprovante de Escolaridade', conditional: false },
@@ -790,25 +790,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                             
                             // Default Values
                             const defaultDay = resident.defaultDueDay || 10;
-                            const displayDate = record?.dueDate || `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
-                            const displayValue = record ? record.value : (resident.defaultMonthlyFee || 0);
+                            // const displayDate = record?.dueDate || `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
+                            // const displayValue = record ? record.value : (resident.defaultMonthlyFee || 0);
+                            const currentVal = record ? record.value : (resident.defaultMonthlyFee || 0);
+                            const currentDueDate = record?.dueDate || `${financialMonth}-${String(defaultDay).padStart(2, '0')}`;
 
                             const paymentLink = record ? getWhatsAppPaymentLink(resident, record) : null;
 
                             return (
                                 <tr key={resident.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="p-4 font-bold text-slate-700 flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden shrink-0">
-                                            {resident.photo ? <img src={resident.photo} className="w-full h-full object-cover" /> : <User size={16} className="m-auto mt-2 text-slate-400" />}
+                                        <div className="w-9 h-11 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
+                                            {resident.photo ? <img src={resident.photo} className="w-full h-full object-cover" /> : <User size={20} className="text-slate-300" />}
                                         </div>
                                         {resident.name}
                                         {isMP && <span className="bg-indigo-100 text-indigo-700 text-[10px] px-1.5 py-0.5 rounded border border-indigo-200 font-bold ml-1">MP</span>}
                                     </td>
                                     <td className="p-4 text-center">
-                                        {new Date(displayDate).toLocaleDateString('pt-BR')}
+                                        <input 
+                                            type="date"
+                                            className="border border-slate-300 rounded p-1 text-sm bg-transparent hover:bg-white focus:bg-white transition-colors text-slate-700"
+                                            defaultValue={currentDueDate}
+                                            key={`date-${resident.id}-${financialMonth}`}
+                                            onBlur={(e) => handleUpdateFinancial(resident, { dueDate: e.target.value })}
+                                            disabled={isMP}
+                                        />
                                     </td>
                                     <td className="p-4 text-right font-mono">
-                                        {formatCurrency(displayValue)}
+                                        <div className="flex items-center justify-end gap-1">
+                                            <span className="text-slate-400 text-xs">R$</span>
+                                            <input 
+                                                type="number" 
+                                                step="0.01"
+                                                className="w-24 border border-slate-300 rounded p-1 text-right text-sm font-bold text-slate-700 bg-transparent hover:bg-white focus:bg-white transition-colors"
+                                                defaultValue={currentVal}
+                                                key={`val-${resident.id}-${financialMonth}`}
+                                                onBlur={(e) => handleUpdateFinancial(resident, { value: parseFloat(e.target.value) || 0 })}
+                                                disabled={isMP}
+                                            />
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center">
                                         {isMP ? (
