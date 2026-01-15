@@ -87,6 +87,20 @@ const App: React.FC = () => {
       const index = residents.findIndex(r => r.id === resident.id);
       
       if (index >= 0) {
+        // --- ATUALIZAÇÃO FINANCEIRA AUTOMÁTICA ---
+        // Se houver registros financeiros, atualiza os valores dos PENDENTES
+        // para refletir o novo valor da mensalidade configurado no cadastro.
+        if (resident.financialRecords) {
+             resident.financialRecords = resident.financialRecords.map(rec => {
+                 // Apenas atualiza se estiver pendente. Pagos mantêm o valor histórico.
+                 if (rec.status === 'PENDENTE') {
+                     return { ...rec, value: resident.defaultMonthlyFee || 0 };
+                 }
+                 return rec;
+             });
+        }
+        // ------------------------------------------
+
         residents[index] = resident;
       } else {
         residents.push({ ...resident, id: resident.id || generateSafeId() });
