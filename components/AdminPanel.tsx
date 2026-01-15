@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { AppData, Employee, Professional, StaffDocument, HouseDocument, Demand, ProfessionalArea, Resident, FinancialRecord } from '../types';
 import { PROFESSIONAL_AREAS } from '../constants';
@@ -586,7 +587,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     const monthName = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
     const capitalizedMonth = monthName.charAt(0).toUpperCase() + monthName.slice(1);
     
-    const dueDateFormatted = record.dueDate ? new Date(record.dueDate).toLocaleDateString('pt-BR') : 'A definir';
+    // Fix: Parse YYYY-MM-DD directly to DD/MM/YYYY to avoid timezone issues
+    let dueDateFormatted = 'A definir';
+    if (record.dueDate) {
+        const parts = record.dueDate.split('-'); // YYYY-MM-DD
+        if (parts.length === 3) {
+            dueDateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    }
+    
     const valueFormatted = formatCurrency(record.value);
 
     let message = `Olá, ${resident.responsible.name}.\n\n`;
