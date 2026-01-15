@@ -578,7 +578,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
   };
 
   const getWhatsAppPaymentLink = (resident: Resident, record: FinancialRecord) => {
-    const phone = resident.responsible.phone1.replace(/\D/g, '');
+    // Tenta primeiro o telefone principal, se não existir, usa o secundário
+    let phone = resident.responsible.phone1?.replace(/\D/g, '');
+    if (!phone && resident.responsible.phone2) {
+        phone = resident.responsible.phone2.replace(/\D/g, '');
+    }
+    
     if (!phone) return null;
     const fullPhone = phone.length <= 11 ? `55${phone}` : phone;
 
