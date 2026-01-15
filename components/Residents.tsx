@@ -709,7 +709,16 @@ export const Residents: React.FC<ResidentsProps> = ({ data, onSave, onDelete, on
                       type="date" 
                       className="w-full p-2 border border-slate-300 rounded-md"
                       value={currentResident.admissionDate || ''}
-                      onChange={e => setCurrentResident({...currentResident, admissionDate: e.target.value})}
+                      onChange={e => {
+                        const newDate = e.target.value;
+                        let newDueDay = currentResident.defaultDueDay;
+                        if (newDate) {
+                           // Extract day part (YYYY-MM-DD)
+                           const day = parseInt(newDate.split('-')[2]);
+                           if (!isNaN(day)) newDueDay = day;
+                        }
+                        setCurrentResident({...currentResident, admissionDate: newDate, defaultDueDay: newDueDay});
+                      }}
                     />
                   </div>
                    <div>
