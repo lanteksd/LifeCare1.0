@@ -560,6 +560,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
     const recordIndex = currentRecords.findIndex(r => r.monthKey === financialMonth);
     let newRecords = [...currentRecords];
 
+    // Determine default day based on admission if defaultDueDay is standard (10)
+    let defaultDay = resident.defaultDueDay || 10;
+    if (defaultDay === 10 && resident.admissionDate) {
+         const adDay = parseInt(resident.admissionDate.split('-')[2]);
+         if (!isNaN(adDay)) defaultDay = adDay;
+    }
+
     if (recordIndex >= 0) {
         // Update existing
         newRecords[recordIndex] = { ...newRecords[recordIndex], ...updates };
@@ -569,7 +576,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
             id: crypto.randomUUID(),
             monthKey: financialMonth,
             value: resident.defaultMonthlyFee || 0,
-            dueDate: `${financialMonth}-${String(resident.defaultDueDay || 10).padStart(2, '0')}`,
+            dueDate: `${financialMonth}-${String(defaultDay).padStart(2, '0')}`,
             status: 'PENDENTE',
             ...updates
         };
@@ -768,14 +775,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
              else if (isPaid) statusFilterKey = 'PAID';
              else statusFilterKey = 'PENDING';
 
+             // LOGIC: Use Admission Day if defaultDueDay is 10 (default)
+             let day = r.defaultDueDay || 10;
+             if (day === 10 && r.admissionDate) {
+                 const adDay = parseInt(r.admissionDate.split('-')[2]);
+                 if (!isNaN(adDay)) day = adDay;
+             }
+
              // Determine effective due date for sorting
-             let dueDateStr = record?.dueDate || `${financialMonth}-${String(r.defaultDueDay || 10).padStart(2, '0')}`;
+             let dueDateStr = record?.dueDate || `${financialMonth}-${String(day).padStart(2, '0')}`;
              
              return {
                  resident: r,
                  record,
                  statusFilterKey,
-                 dueDateStr
+                 dueDateStr,
+                 calculatedDay: day
              };
         });
 
@@ -868,7 +883,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ data, onUpdateEmployee, 
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {residentsList.map(({ resident, record, dueDateStr }) => {
+                        {residentsList.map(({ resident, record, dueDateStr, calculatedDay }) => {
                             const isPaid = record?.status === 'PAGO';
                             const isMP = resident.isMP; 
                             
