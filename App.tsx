@@ -88,13 +88,21 @@ const App: React.FC = () => {
       
       if (index >= 0) {
         // --- ATUALIZAÇÃO FINANCEIRA AUTOMÁTICA ---
-        // Se houver registros financeiros, atualiza os valores dos PENDENTES
-        // para refletir o novo valor da mensalidade configurado no cadastro.
+        // Se houver registros financeiros, atualiza os valores E DATAS dos PENDENTES
+        // para refletir o novo valor da mensalidade e dia de vencimento configurado.
         if (resident.financialRecords) {
              resident.financialRecords = resident.financialRecords.map(rec => {
                  // Apenas atualiza se estiver pendente. Pagos mantêm o valor histórico.
                  if (rec.status === 'PENDENTE') {
-                     return { ...rec, value: resident.defaultMonthlyFee || 0 };
+                     // Recalcula a data de vencimento baseada no mês do registro (monthKey) e novo dia (defaultDueDay)
+                     const newDay = resident.defaultDueDay || 10;
+                     const newDueDate = `${rec.monthKey}-${String(newDay).padStart(2, '0')}`;
+
+                     return { 
+                       ...rec, 
+                       value: resident.defaultMonthlyFee || 0,
+                       dueDate: newDueDate
+                     };
                  }
                  return rec;
              });
